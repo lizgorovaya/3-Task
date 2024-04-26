@@ -67,6 +67,7 @@ class RockPaperScissorsGame:
         self.move_generator = MoveGenerator(moves)
         self.move_rules = MoveRules(moves)
         self.table_generator = TableGenerator(moves)
+        self.computer_move = None
 
     def calculate_hmac(self, move):
         return hmac.new(bytes.fromhex(self.key), move.encode(), hashlib.sha256).hexdigest()
@@ -109,20 +110,23 @@ class RockPaperScissorsGame:
                 print()
                 continue
 
-            pc_move = self.move_generator.generate_move()
+            self.computer_move = self.move_generator.generate_move()
 
             print(f"Your move: {user_move}")
-            print(f"Computer move: {pc_move}")
+            print(f"Computer move: {self.computer_move}")
 
-            result = self.move_rules.get_result(user_move, pc_move)
+            result = self.move_rules.get_result(user_move, self.computer_move)
             print(result + "!")
             print()
 
+    def check_computer_move(self):
+        if self.computer_move is None:
+            print("Computer move has not been generated yet.")
         else:
-            print("No more moves to play.")
-
+            print(f"Computer move: {self.computer_move}")
 
 if __name__ == "__main__":
     moves = ["rock", "paper", "scissors", "lizard", "spock"]
     game = RockPaperScissorsGame(moves)
     game.play()
+    game.check_computer_move()
