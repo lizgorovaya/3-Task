@@ -85,7 +85,7 @@ class RockPaperScissorsGame:
 
         for i in range(num_moves):
             print(f"--- Game {i + 1} ---")
-            print("HMAC:", self.calculate_hmac(self.move_generator.generate_move()))
+
             print("Available moves:")
             for j, move in enumerate(self.moves, start=1):
                 print(f"{j} - {move}")
@@ -117,7 +117,7 @@ class RockPaperScissorsGame:
 
             result = self.move_rules.get_result(user_move, self.computer_move)
             print(result + "!")
-            print()
+            print("HMAC:", self.calculate_hmac(self.move_generator.generate_move()))
 
     def check_computer_move(self):
         if self.computer_move is None:
