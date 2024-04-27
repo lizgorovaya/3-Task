@@ -1,132 +1,114 @@
-import random
-import hmac
 import hashlib
-
-
-class TableGenerator:
-    def __init__(self, moves):
-        self.moves = moves
-
-    def generate_table(self):
-        table = [[None] * (len(self.moves) + 1) for _ in range(len(self.moves) + 1)]
-        table[0][0] = "Moves"
-        for i in range(1, len(table)):
-            table[i][0] = self.moves[i - 1]
-            table[0][i] = self.moves[i - 1]
-
-        for i in range(1, len(table)):
-            for j in range(1, len(table[i])):
-                table[i][j] = self.get_result(table[0][j], table[i][0])
-
-        return table
-
-    def get_result(self, move1, move2):
-        n = len(self.moves)
-        if move1 == move2:
-            return "Draw"
-        elif (self.moves.index(move2) - self.moves.index(move1)) % n <= n // 2:
-            return "Win"
-        else:
-            return "Lose"
-
-
-class MoveRules:
-    def __init__(self, moves):
-        self.moves = moves
-
-    def get_result(self, move1, move2):
-        n = len(self.moves)
-        move1_index = self.moves.index(move1)
-        move2_index = self.moves.index(move2)
-        if move1_index == move2_index:
-            return "Draw"
-        elif (move2_index - move1_index) % n <= n // 2:
-            return "Win"
-        else:
-            return "Lose"
-
-
-class KeyGenerator:
-    @staticmethod
-    def generate_key():
-        return hashlib.sha256(bytes(random.getrandbits(8) for _ in range(32))).hexdigest()
+import hmac
+import os
+import random
+import sys
 
 
 class MoveGenerator:
-    def __init__(self, moves):
-        self.moves = moves
-
-    def generate_move(self):
-        return random.choice(self.moves)
+    @staticmethod
+    def generate_move(moves):
+        return random.choice(moves)
 
 
-class RockPaperScissorsGame:
-    def __init__(self, moves):
-        self.moves = moves
-        self.key = KeyGenerator.generate_key()
-        self.move_generator = MoveGenerator(moves)
-        self.move_rules = MoveRules(moves)
-        self.table_generator = TableGenerator(moves)
-        self.computer_move = None
+class HMACGenerator:
+    @staticmethod
+    def generate_key():
+        # Generate a cryptographically strong random key with a length of at least 256 bits
+        key = os.urandom(32)  # 32 bytes = 256 bits
+        return key
 
-    def calculate_hmac(self, move):
-        return hmac.new(bytes.fromhex(self.key), move.encode(), hashlib.sha256).hexdigest()
+    @staticmethod
+    def generate_hmac(key, move):
+        # Calculate HMAC using SHA-256
+        h = hmac.new(key, move.encode(), hashlib.sha256)
+        return h.hexdigest()
 
-    def display_help(self):
-        table = self.table_generator.generate_table()
-        for row in table:
-            print(" | ".join(str(cell) for cell in row))
 
-    def play(self):
-        num_moves = len(self.moves)
-        print(f"Number of moves: {num_moves}")
-        print("HMAC key:", self.key)
-        print()
+class GameRules:
+    @staticmethod
+    def determine_winner(moves, user_move, computer_move):
+        moves_len = len(moves)
+        half_len = moves_len // 2
 
-        for i in range(num_moves):
-            print(f"--- Game {i + 1} ---")
+        user_index = moves.index(user_move)
+        computer_index = moves.index(computer_move)
 
-            print("Available moves:")
-            for j, move in enumerate(self.moves, start=1):
-                print(f"{j} - {move}")
-            print("0 - Exit")
-            print("? - Help")
-
-            user_input = input("Enter your move: ")
-
-            if user_input == "?":
-                self.display_help()
-                print()
-                continue
-
-            if user_input == "0":
-                print("Exiting the game. Goodbye!")
-                break
-
-            try:
-                user_move = self.moves[int(user_input) - 1]
-            except (ValueError, IndexError):
-                print("Invalid input. Please enter a valid move or ? for help.")
-                print()
-                continue
-
-            self.computer_move = self.move_generator.generate_move()
-
-            print(f"Your move: {user_move}")
-            print(f"Computer move: {self.computer_move}")
-
-            result = self.move_rules.get_result(user_move, self.computer_move)
-            print(result + "!")
-            print("HMAC:", self.calculate_hmac(self.move_generator.generate_move()))
-
-    def check_computer_move(self):
-        if self.computer_move is None:
-            print("Computer move has not been generated yet.")
+        if user_index == computer_index:
+            return "Draw"
+        elif (user_index - computer_index) % moves_len <= half_len:
+            return "Win"
         else:
-            print(f"Computer move: {self.computer_move}")
+            return "Lose"
+
+
+def print_help_table(moves):
+    moves_len = len(moves)
+    header = [""] + moves
+    table = [header]
+
+    for move_row in moves:
+        row = [move_row]
+        for move_col in moves:
+            result = GameRules.determine_winner(moves, move_row, move_col)
+            row.append(result)
+        table.append(row)
+
+    print_table(table)
+
+
+def print_table(table):
+    col_widths = [max(len(str(cell)) for cell in col) for col in zip(*table)]
+    for row in table:
+        print("  ".join(str(cell).ljust(width) for cell, width in zip(row, col_widths)))
+
+def main():
+    moves = ['rock', 'paper', 'scissors', 'lizard', 'spock']
+
+    moves_len = len(moves)
+
+    if moves_len % 2 == 0 or moves_len < 3:
+        print("Error: The number of moves must be odd and greater than or equal to 3.")
+        print("Example usage: python script.py rock paper scissors")
+        return
+
+    hmac_key = HMACGenerator.generate_key()
+    computer_move = MoveGenerator.generate_move(moves)
+    computer_hmac = HMACGenerator.generate_hmac(hmac_key, computer_move)
+
+    print("HMAC:", computer_hmac)
+    print("Available moves:")
+    for i, move in enumerate(moves, start=1):
+        print(f"{i} - {move}")
+
+    print("0 - Exit")
+    print("? - Help")
+
+    while True:
+        user_input = input("Enter your move: ")
+        if user_input == "?":
+            print_help_table(moves)
+            continue
+        elif user_input == "0":
+            print("Exiting the game.")
+            return
+
+        try:
+            user_move_index = int(user_input) - 1
+            if user_move_index < 0 or user_move_index >= moves_len:
+                raise ValueError
+        except ValueError:
+            print("Invalid input. Please enter a valid move number.")
+            continue
+
+        user_move = moves[user_move_index]
+
+        print(f"Your move: {user_move}")
+        print(f"Computer move: {computer_move}")
+        print("HMAC key:", hmac_key.hex())
+        result = GameRules.determine_winner(moves, user_move, computer_move)
+        print("You", result + "!")
+
 
 if __name__ == "__main__":
-    moves = ["rock", "paper", "scissors", "lizard", "spock"]
-    game = RockPaperScissorsGame(moves)
-    game.play()
-    game.check_computer_move()
+    main()
