@@ -3,8 +3,6 @@ import hmac
 import os
 import random
 import sys
-
-
 class MoveGenerator:
     @staticmethod
     def generate_move(moves):
@@ -62,9 +60,9 @@ def print_table(table):
     for row in table:
         print("  ".join(str(cell).ljust(width) for cell, width in zip(row, col_widths)))
 
-def main():
-    moves = ['rock', 'paper', 'scissors', 'lizard', 'spock']
 
+def main():
+    moves = sys.argv[1:]
     moves_len = len(moves)
 
     if moves_len % 2 == 0 or moves_len < 3:
